@@ -1,10 +1,4 @@
-import streamlit as st
 
-st.title("בדיקה ✅")
-st.write("האפליקציה עובדת")
-
-st.success("אם אתה רואה את זה → הכל תקין")
-"""
 import streamlit as st
 import os
 
@@ -135,4 +129,3 @@ if mp3s:
             st.audio(full)
 else:
     st.info("אין קבצי MP3")
-"""
