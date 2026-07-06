@@ -3,50 +3,56 @@ import os
 
 st.set_page_config(page_title="🎧 סיפורים", layout="wide")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.dirname(os.path.abspath(__file__))
 
-# ======================
-# STATE בסיסי בלבד
-# ======================
+# =========================
+# STATE
+# =========================
 if "path" not in st.session_state:
-    st.session_state.path = BASE_DIR
+    st.session_state.path = BASE
+
+if "selected" not in st.session_state:
+    st.session_state.selected = None
 
 if "search" not in st.session_state:
     st.session_state.search = ""
 
-if "current_file" not in st.session_state:
-    st.session_state.current_file = None
+# =========================
+# פונקציות
+# =========================
+def open_folder(p):
+    st.session_state.path = p
+    st.session_state.selected = None
 
+def play(p):
+    st.session_state.selected = p
 
-# ======================
-# כותרת
-# ======================
+def back():
+    st.session_state.path = os.path.dirname(st.session_state.path)
+    st.session_state.selected = None
+
+# =========================
+# UI
+# =========================
 st.title("🎧 ספריית סיפורים")
 
-# ======================
-# ניווט
-# ======================
-col1, col2 = st.columns([1, 5])
+c1, c2 = st.columns([1, 6])
 
-with col1:
-    if st.button("⬅️ חזור"):
-        parent = os.path.dirname(st.session_state.path)
-        if os.path.exists(parent):
-            st.session_state.path = parent
-            st.session_state.current_file = None
+with c1:
+    st.button("⬅️ אחורה", on_click=back)
 
-with col2:
+with c2:
     st.session_state.search = st.text_input("🔍 חיפוש", st.session_state.search)
 
 st.divider()
 
-current_path = st.session_state.path
+path = st.session_state.path
 
-# ======================
-# קריאת קבצים
-# ======================
+# =========================
+# קריאה
+# =========================
 try:
-    items = os.listdir(current_path)
+    items = os.listdir(path)
 except:
     st.error("שגיאה בקריאת תיקייה")
     st.stop()
@@ -54,67 +60,58 @@ except:
 folders = []
 mp3s = []
 
-for item in sorted(items):
-    full = os.path.join(current_path, item)
+for i in sorted(items):
+    full = os.path.join(path, i)
 
     if os.path.isdir(full):
-        folders.append((item, full))
-    elif item.lower().endswith(".mp3"):
-        mp3s.append((item, full))
+        folders.append((i, full))
+    elif i.lower().endswith(".mp3"):
+        mp3s.append((i, full))
 
-# ======================
+# =========================
 # חיפוש
-# ======================
+# =========================
 q = st.session_state.search.lower().strip()
 
 if q:
     folders = [(n,p) for n,p in folders if q in n.lower()]
     mp3s = [(n,p) for n,p in mp3s if q in n.lower()]
 
-# ======================
+# =========================
 # תיקיות
-# ======================
+# =========================
 st.subheader("📁 תיקיות")
 
-if not folders:
-    st.write("אין תיקיות")
-else:
-    for name, path in folders:
-        col1, col2 = st.columns([6,1])
+for name, full in folders:
+    c1, c2 = st.columns([6,1])
 
-        with col1:
-            st.write("📂", name)
+    with c1:
+        st.write("📂", name)
 
-        with col2:
-            if st.button("פתח", key=path):
-                st.session_state.path = path
-                st.session_state.current_file = None
+    with c2:
+        st.button("פתח", key=full, on_click=open_folder, args=(full,))
 
 st.divider()
 
-# ======================
+# =========================
 # קבצים
-# ======================
-st.subheader("🎵 קבצי MP3")
+# =========================
+st.subheader("🎵 MP3")
 
-if not mp3s:
-    st.write("אין קבצים")
-else:
-    for name, path in mp3s:
-        col1, col2 = st.columns([6,1])
+for name, full in mp3s:
+    c1, c2 = st.columns([6,1])
 
-        with col1:
-            st.write("🎧", name)
+    with c1:
+        st.write("🎧", name)
 
-        with col2:
-            if st.button("נגן", key="play_"+path):
-                st.session_state.current_file = path
+    with c2:
+        st.button("▶️", key="p"+full, on_click=play, args=(full,))
 
-# ======================
+# =========================
 # נגן יחיד בלבד (קריטי!)
-# ======================
+# =========================
 st.divider()
 
-if st.session_state.current_file:
+if st.session_state.selected:
     st.subheader("▶️ נגן")
-    st.audio(st.session_state.current_file)
+    st.audio(st.session_state.selected)
