@@ -3,126 +3,106 @@ import os
 
 st.set_page_config(page_title="🎧 סיפורים", layout="wide")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.dirname(os.path.abspath(__file__))
 
-# =====================
+# ======================
 # STATE
-# =====================
+# ======================
 if "path" not in st.session_state:
-    st.session_state.path = BASE_DIR
+    st.session_state.path = BASE
 
 if "search" not in st.session_state:
     st.session_state.search = ""
 
-if "current_audio" not in st.session_state:
-    st.session_state.current_audio = None
-
-
-# =====================
+# ======================
 # פונקציות
-# =====================
+# ======================
 def open_folder(path):
     st.session_state.path = path
 
 def back():
-    st.session_state.path = os.path.dirname(st.session_state.path)
+    parent = os.path.dirname(st.session_state.path)
+    if os.path.exists(parent):
+        st.session_state.path = parent
 
-def play(file_path):
-    st.session_state.current_audio = file_path
+# ======================
+# UI עליון
+# ======================
+st.title("🎧 ספריית סיפורים")
 
-def refresh():
-    st.rerun()
+col1, col2, col3 = st.columns([1, 6, 1])
 
-
-# =====================
-# UI
-# =====================
-st.title("🎧 נגן סיפורים")
-
-c1, c2, c3 = st.columns([1, 6, 1])
-
-with c1:
+with col1:
     st.button("⬅️ אחורה", on_click=back)
 
-with c2:
+with col2:
     st.session_state.search = st.text_input("🔍 חיפוש", st.session_state.search)
 
-with c3:
-    st.button("🔄 רענן", on_click=refresh)
+with col3:
+    if st.button("🔄"):
+        st.rerun()
 
 st.divider()
 
-path = st.session_state.path
+current = st.session_state.path
 
-# =====================
+# ======================
 # קריאה
-# =====================
-items = os.listdir(path)
+# ======================
+try:
+    items = os.listdir(current)
+except Exception as e:
+    st.error(e)
+    st.stop()
 
 folders = []
 mp3s = []
 
 for i in sorted(items):
-    full = os.path.join(path, i)
+    full = os.path.join(current, i)
 
     if os.path.isdir(full):
         folders.append((i, full))
     elif i.lower().endswith(".mp3"):
         mp3s.append((i, full))
 
-
-# =====================
+# ======================
 # חיפוש
-# =====================
+# ======================
 q = st.session_state.search.lower().strip()
 
 if q:
     folders = [(n,p) for n,p in folders if q in n.lower()]
     mp3s = [(n,p) for n,p in mp3s if q in n.lower()]
 
-
-# =====================
+# ======================
 # תיקיות
-# =====================
+# ======================
 st.subheader("📁 תיקיות")
 
 if not folders:
     st.info("אין תיקיות")
 else:
-    for name, full in folders:
+    for name, path in folders:
         c1, c2 = st.columns([6,1])
 
         with c1:
             st.write("📂", name)
 
         with c2:
-            st.button("פתח", key=full, on_click=open_folder, args=(full,))
-
+            st.button("פתח", key=path, on_click=open_folder, args=(path,))
 
 st.divider()
 
-# =====================
-# MP3 LIST
-# =====================
-st.subheader("🎵 קבצים")
+# ======================
+# MP3 (החלק הקריטי - בלי containers!)
+# ======================
+st.subheader("🎵 קבצי שמע")
 
 if not mp3s:
     st.info("אין קבצים")
 else:
-    for name, full in mp3s:
-        c1, c2 = st.columns([6,1])
-
-        with c1:
-            st.write("🎧", name)
-
-        with c2:
-            st.button("▶️ נגן", key="p_"+full, on_click=play, args=(full,))
-
-
-# =====================
-# PLAYER (רק אחד!)
-# =====================
-if st.session_state.current_audio:
-    st.divider()
-    st.subheader("▶️ נגן פעיל")
-    st.audio(st.session_state.current_audio)
+    for name, path in mp3s:
+        st.write("🎧", name)
+        st.audio(path)
+        st.markdown("---")
