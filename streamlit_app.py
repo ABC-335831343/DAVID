@@ -1,32 +1,29 @@
 import streamlit as st
 import os
 
-# =======================
-# הגדרות עמוד
-# =======================
+# =========================
+# הגדרות בסיס
+# =========================
 st.set_page_config(
-    page_title="🎧 נגן סיפורים",
+    page_title="🎧 ספריית סיפורים",
     layout="wide"
 )
 
-# =======================
-# נתיב בסיס (יציב ל-GitHub / Cloud)
-# =======================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# =======================
-# מצב אפליקציה
-# =======================
+# =========================
+# מצב
+# =========================
 if "path" not in st.session_state:
     st.session_state.path = BASE_DIR
 
 if "search" not in st.session_state:
     st.session_state.search = ""
 
-# =======================
-# פונקציות ניווט
-# =======================
-def go_to(path):
+# =========================
+# פונקציות
+# =========================
+def set_path(path):
     st.session_state.path = path
 
 def go_back():
@@ -35,18 +32,18 @@ def go_back():
         st.session_state.path = parent
 
 def refresh():
+    st.cache_data.clear()
     st.rerun()
 
-# =======================
-# כותרת
-# =======================
-st.title("🎧 נגן סיפורים")
+# =========================
+# UI עליון
+# =========================
+st.title("🎧 ספריית סיפורים")
 
 col1, col2, col3 = st.columns([1, 6, 1])
 
 with col1:
-    if st.button("⬅️ אחורה"):
-        go_back()
+    st.button("⬅️ חזור", on_click=go_back)
 
 with col2:
     st.session_state.search = st.text_input(
@@ -55,78 +52,80 @@ with col2:
     )
 
 with col3:
-    if st.button("🔄 רענן"):
-        refresh()
+    st.button("🔄 רענן", on_click=refresh)
 
-st.caption(f"📁 נתיב נוכחי: {st.session_state.path}")
+st.caption(f"📁 נתיב: {st.session_state.path}")
 
-current_path = st.session_state.path
-
-# =======================
-# קריאת תיקייה בטוחה
-# =======================
-try:
-    items = sorted(os.listdir(current_path))
-except Exception as e:
-    st.error(f"שגיאה בקריאת תיקייה: {e}")
-    st.stop()
-
-folders = []
-mp3_files = []
-
-for item in items:
-    full_path = os.path.join(current_path, item)
-
+# =========================
+# קריאת תיקייה
+# =========================
+def load_files(path):
     try:
-        if os.path.isdir(full_path):
+        items = os.listdir(path)
+    except:
+        return [], []
+
+    folders = []
+    mp3s = []
+
+    for item in sorted(items):
+        full = os.path.join(path, item)
+
+        if os.path.isdir(full):
             folders.append(item)
         elif item.lower().endswith(".mp3"):
-            mp3_files.append(item)
-    except:
-        continue
+            mp3s.append(item)
 
-# =======================
+    return folders, mp3s
+
+
+folders, mp3_files = load_files(st.session_state.path)
+
+# =========================
 # חיפוש
-# =======================
-query = st.session_state.search.lower().strip()
+# =========================
+q = st.session_state.search.lower().strip()
 
-if query:
-    folders = [f for f in folders if query in f.lower()]
-    mp3_files = [f for f in mp3_files if query in f.lower()]
+if q:
+    folders = [f for f in folders if q in f.lower()]
+    mp3_files = [f for f in mp3_files if q in f.lower()]
 
-# =======================
+# =========================
 # תיקיות
-# =======================
+# =========================
 st.subheader("📁 תיקיות")
 
-if folders:
+if not folders:
+    st.info("אין תיקיות")
+else:
     for folder in folders:
-        folder_path = os.path.join(current_path, folder)
+        path = os.path.join(st.session_state.path, folder)
 
         with st.container(border=True):
-            colA, colB = st.columns([6, 1])
+            colA, colB = st.columns([5, 1])
 
             with colA:
                 st.markdown(f"📂 **{folder}**")
 
             with colB:
-                if st.button("פתח ▶️", key=f"open_{folder_path}"):
-                    go_to(folder_path)
-                    st.rerun()
-else:
-    st.info("אין תיקיות")
+                st.button(
+                    "פתח ▶️",
+                    key=f"open_{path}",
+                    on_click=set_path,
+                    args=(path,)
+                )
 
-# =======================
+# =========================
 # קבצי MP3
-# =======================
+# =========================
 st.subheader("🎵 קבצי שמע")
 
-if mp3_files:
+if not mp3_files:
+    st.info("אין קבצי MP3")
+else:
     for file in mp3_files:
-        file_path = os.path.join(current_path, file)
+        full = os.path.join(st.session_state.path, file)
 
         with st.container(border=True):
             st.markdown(f"🎧 **{file}**")
-            st.audio(file_path)
-else:
-    st.info("אין קבצי MP3 בתיקייה זו")
+            st.audio(full)
