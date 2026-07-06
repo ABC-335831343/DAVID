@@ -1,4 +1,14 @@
 import streamlit as st
+
+st.title("בדיקת קובץ ראשי")
+
+st.write("אם אתה רואה את זה → הקובץ נטען")
+
+st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3")
+
+st.success("Audio loaded")
+"""
+import streamlit as st
 import os
 
 st.set_page_config(page_title="🎧 סיפורים", layout="wide")
@@ -106,3 +116,4 @@ else:
         st.write("🎧", name)
         st.audio(path)
         st.markdown("---")
+"""
