@@ -1,75 +1,58 @@
-
 import streamlit as st
 import os
 
-# =========================
-# הגדרות
-# =========================
 st.set_page_config(page_title="🎧 סיפורים", layout="wide")
 
-# =========================
-# ROOT יציב ל-Streamlit Cloud
-# =========================
-BASE_DIR = os.getcwd()
+BASE = os.path.dirname(os.path.abspath(__file__))
 
-# fallback אם משהו נשבר
-if not os.path.exists(BASE_DIR):
-    BASE_DIR = "."
-
-# =========================
-# מצב
-# =========================
+# ======================
+# STATE
+# ======================
 if "path" not in st.session_state:
-    st.session_state.path = BASE_DIR
+    st.session_state.path = BASE
 
 if "search" not in st.session_state:
     st.session_state.search = ""
 
-# =========================
+# ======================
 # פונקציות
-# =========================
-def set_path(path):
-    if os.path.exists(path):
-        st.session_state.path = path
+# ======================
+def open_folder(path):
+    st.session_state.path = path
 
 def back():
     parent = os.path.dirname(st.session_state.path)
     if os.path.exists(parent):
         st.session_state.path = parent
 
-def reload():
-    st.rerun()
-
-# =========================
-# UI
-# =========================
+# ======================
+# UI עליון
+# ======================
 st.title("🎧 ספריית סיפורים")
 
-c1, c2, c3 = st.columns([1, 6, 1])
+col1, col2, col3 = st.columns([1, 6, 1])
 
-with c1:
+with col1:
     st.button("⬅️ אחורה", on_click=back)
 
-with c2:
-    st.session_state.search = st.text_input(
-        "🔍 חיפוש",
-        value=st.session_state.search
-    )
+with col2:
+    st.session_state.search = st.text_input("🔍 חיפוש", st.session_state.search)
 
-with c3:
-    st.button("🔄 רענן", on_click=reload)
+with col3:
+    if st.button("🔄"):
+        st.rerun()
 
-st.caption(f"📁 {st.session_state.path}")
+st.divider()
 
 current = st.session_state.path
 
-# =========================
-# קריאה בטוחה
-# =========================
+# ======================
+# קריאה
+# ======================
 try:
     items = os.listdir(current)
 except Exception as e:
-    st.error(f"שגיאה בטעינת תיקייה: {e}")
+    st.error(e)
     st.stop()
 
 folders = []
@@ -78,54 +61,48 @@ mp3s = []
 for i in sorted(items):
     full = os.path.join(current, i)
 
-    try:
-        if os.path.isdir(full):
-            folders.append(i)
-        elif i.lower().endswith(".mp3"):
-            mp3s.append(i)
-    except:
-        continue
+    if os.path.isdir(full):
+        folders.append((i, full))
+    elif i.lower().endswith(".mp3"):
+        mp3s.append((i, full))
 
-# =========================
+# ======================
 # חיפוש
-# =========================
+# ======================
 q = st.session_state.search.lower().strip()
 
 if q:
-    folders = [f for f in folders if q in f.lower()]
-    mp3s = [f for f in mp3s if q in f.lower()]
+    folders = [(n,p) for n,p in folders if q in n.lower()]
+    mp3s = [(n,p) for n,p in mp3s if q in n.lower()]
 
-# =========================
+# ======================
 # תיקיות
-# =========================
+# ======================
 st.subheader("📁 תיקיות")
 
-if folders:
-    for f in folders:
-        path = os.path.join(current, f)
-
-        with st.container(border=True):
-            col1, col2 = st.columns([6, 1])
-
-            with col1:
-                st.write("📂", f)
-
-            with col2:
-                st.button("פתח", key=path, on_click=set_path, args=(path,))
-else:
+if not folders:
     st.info("אין תיקיות")
+else:
+    for name, path in folders:
+        c1, c2 = st.columns([6,1])
 
-# =========================
-# MP3
-# =========================
+        with c1:
+            st.write("📂", name)
+
+        with c2:
+            st.button("פתח", key=path, on_click=open_folder, args=(path,))
+
+st.divider()
+
+# ======================
+# MP3 (החלק הקריטי - בלי containers!)
+# ======================
 st.subheader("🎵 קבצי שמע")
 
-if mp3s:
-    for m in mp3s:
-        full = os.path.join(current, m)
-
-        with st.container(border=True):
-            st.write("🎧", m)
-            st.audio(full)
+if not mp3s:
+    st.info("אין קבצים")
 else:
-    st.info("אין קבצי MP3")
+    for name, path in mp3s:
+        st.write("🎧", name)
+        st.audio(path)
+        st.markdown("---")
